@@ -13,4 +13,7 @@ export enum TimelineEvents {
   ContextMenu = 'onContextMenu',
   DoubleClick = 'doubleClick',
   MouseDown = 'mouseDown',
+  KeyDown = 'keyDown',
+  KeyUp = 'keyUp',
+  KeyPress = 'keyPress',
 }

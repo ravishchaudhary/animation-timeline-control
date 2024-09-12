@@ -365,6 +365,8 @@ export class Timeline extends TimelineEventsEmitter {
     if (this._interactionMode === TimelineInteractionMode.Zoom) {
       this._setZoomCursor(event);
     }
+
+    super.emit(TimelineEvents.KeyDown, event);
   };
   _setZoomCursor = (e: MouseEvent | KeyboardEvent): void => {
     if (this._controlKeyPressed(e)) {
@@ -550,6 +552,7 @@ export class Timeline extends TimelineEventsEmitter {
     // target element.
     event.target = target;
 
+	console.log('_handleContextMenu', TimelineEvents.ContextMenu);
     super.emit(TimelineEvents.ContextMenu, event);
   };
 
@@ -1835,7 +1838,13 @@ export class Timeline extends TimelineEventsEmitter {
           this._ctx.lineWidth = groupStrokeThickness;
           // Different radii for each corner, top-left clockwise to bottom-left
           this._ctx.beginPath();
-          this._ctx.roundRect(rect.x + groupStrokeThickness, rect.y + groupStrokeThickness, rect.width - groupStrokeThickness, rect.height - groupStrokeThickness, groupsRadii);
+          this._ctx.roundRect(
+            rect.x + groupStrokeThickness,
+            rect.y + groupStrokeThickness,
+            rect.width - groupStrokeThickness,
+            rect.height - groupStrokeThickness,
+            groupsRadii as number | DOMPointInit,
+          );
           this._ctx.fill();
           if (groupStrokeThickness > 0) {
             this._ctx.stroke();
@@ -2077,12 +2086,12 @@ export class Timeline extends TimelineEventsEmitter {
 
       if (border > 0 && strokeColor) {
         ctx.fillStyle = strokeColor;
-        ctx.rect(x, y, size.width, size.height);
+        ctx.roundRect(x, y, size.width, size.height, 2);
         ctx.fill();
       }
 
       ctx.fillStyle = keyframeColor;
-      ctx.rect(x + border, y + border, size.width - border, size.height - border);
+      ctx.roundRect(x + border, y + border, size.width - border, size.height - border, 2);
       ctx.fill();
     }
   };
@@ -2767,6 +2776,27 @@ export class Timeline extends TimelineEventsEmitter {
    */
   public onContextMenu = (callback: (eventArgs: TimelineClickEvent) => void): void => {
     this.on(TimelineEvents.ContextMenu, callback);
+  };
+
+  /**
+   * Subscribe on canvas keydown event.
+   */
+  public onKeyDown = (callback: (eventArgs: KeyboardEvent) => void): void => {
+    this.on(TimelineEvents.KeyDown, callback);
+  };
+
+  /**
+   * Subscribe on canvas keyup event.
+   */
+  public onKeyUp = (callback: (eventArgs: KeyboardEvent) => void): void => {
+    this.on(TimelineEvents.KeyUp, callback);
+  };
+
+  /**
+   * Subscribe on canvas keypress event.
+   */
+  public onKeyPress = (callback: (eventArgs: KeyboardEvent) => void): void => {
+    this.on(TimelineEvents.KeyPress, callback);
   };
 
   /**

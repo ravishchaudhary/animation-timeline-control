@@ -11,4 +11,5 @@ export interface TimelineRow extends TimelineRanged {
    */
   keyframesDraggable?: boolean;
   groupsDraggable?: boolean;
+  metadata?: any;
 }
