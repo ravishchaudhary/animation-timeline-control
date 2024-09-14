@@ -7,6 +7,10 @@ export declare enum TimelineElementType {
      */
     Timeline = "timeline",
     /**
+     * Timeline
+     */
+    DurationLine = "durationLine",
+    /**
      * Keyframes
      */
     Keyframe = "keyframe",

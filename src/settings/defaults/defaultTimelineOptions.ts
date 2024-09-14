@@ -114,4 +114,8 @@ export const defaultTimelineOptions = {
    * Max bounds timeline can navigate to.
    */
   max: Number.MAX_VALUE,
+  /**
+   * Duration of the timeline in milliseconds
+   */
+  totalDuration: 10000,
 } as TimelineOptions;
