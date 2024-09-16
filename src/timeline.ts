@@ -2597,6 +2597,7 @@ export class Timeline extends TimelineEventsEmitter {
       // content should be not less than current timeline position + width of the timeline
       const timelineGlobalPos = this.valToPx(this._val) + this._leftMargin();
       let timelinePos = 0;
+      const timelineDuration = this.valToPx(this._durationVal + 1000);
       const rightPosition = this.scrollLeft + this.getClientWidth();
 
       if (timelineGlobalPos >= rightPosition) {
@@ -2618,6 +2619,8 @@ export class Timeline extends TimelineEventsEmitter {
         // not less than current scroll position
         rightPosition,
         timelinePos,
+        // not less than duration value
+        timelineDuration,
       );
 
       const minWidthPx = Math.floor(newWidth) + 'px';
