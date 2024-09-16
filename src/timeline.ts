@@ -1684,7 +1684,7 @@ export class Timeline extends TimelineEventsEmitter {
       // draw with scroll virtualization:
       const rowHeight = TimelineStyleUtils.getRowHeight(row.style || null, this._options);
       const marginBottom = TimelineStyleUtils.getRowMarginBottom(row.style || null, this._options);
-      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0);
+      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0) + marginBottom;
       rowAbsoluteHeight += rowHeight + marginBottom;
       if (index == 0) {
         toReturn.size.y = currentRowY;
@@ -2192,6 +2192,13 @@ export class Timeline extends TimelineEventsEmitter {
 
       // Fill rectangle
       this._ctx.fill();
+      if (this._options.headerHeight) {
+        this._ctx.beginPath();
+        this._ctx.strokeStyle = '#F2F4F7';
+        this._ctx.moveTo(0, this._options.headerHeight);
+        this._ctx.lineTo(this._canvasClientWidth(), this._options.headerHeight);
+        this._ctx.stroke();
+      }
     } finally {
       this._ctx.restore();
     }
