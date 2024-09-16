@@ -1847,6 +1847,7 @@ export class Timeline extends TimelineEventsEmitter {
           this._ctx.lineWidth = groupStrokeThickness;
           // Different radii for each corner, top-left clockwise to bottom-left
           this._ctx.beginPath();
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           this._ctx.roundRect(
             rect.x + groupStrokeThickness,
@@ -2048,10 +2049,14 @@ export class Timeline extends TimelineEventsEmitter {
     }
     const size = keyframeViewModel.size;
     const x = this._getSharp(size.x);
-    const y = size.y;
+    let y = size.y;
 
     const keyframe = keyframeViewModel.model;
     const row = keyframeViewModel.rowViewModel.model;
+    if (row.style?.height && size.height && row.style?.height > size.height) {
+      // Centering the keyframe
+      y = y + (row.style?.height - size.height) / 2;
+    }
     const rowStyle = row.style || null;
     const groupModel = keyframeViewModel?.groupViewModel?.groupModel || null;
     const keyframeColor = keyframe.selected
@@ -2096,12 +2101,14 @@ export class Timeline extends TimelineEventsEmitter {
 
       if (border > 0 && strokeColor) {
         ctx.fillStyle = strokeColor;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         ctx.roundRect(x, y, size.width, size.height, 2);
         ctx.fill();
       }
 
       ctx.fillStyle = keyframeColor;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       ctx.roundRect(x + border, y + border, size.width - border, size.height - border, 2);
       ctx.fill();
