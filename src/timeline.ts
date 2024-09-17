@@ -520,7 +520,15 @@ export class Timeline extends TimelineEventsEmitter {
     if (prevZoom !== zoom) {
       const zoomSet = this._setZoom(zoom);
       if (prevZoom != zoomSet) {
-        this.rescale();
+        // Get only after zoom is set
+        const zoomCenter = this.valToPx(this._val);
+        let newScrollLeft = Math.round(zoomCenter - this._canvasClientWidth() * zoom);
+        if (newScrollLeft <= 0) {
+          newScrollLeft = 0;
+        }
+
+        this._rescaleInternal(newScrollLeft + this._canvasClientWidth(), null, TimelineScrollSource.ZoomMode);
+        this.scrollLeft = newScrollLeft;
         this.redraw();
         return zoomSet;
       }
