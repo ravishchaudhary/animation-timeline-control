@@ -521,6 +521,10 @@ export declare class Timeline extends TimelineEventsEmitter {
      */
     onDragStarted: (callback: (eventArgs: TimelineDragEvent) => void) => void;
     /**
+     * Subscribe user callback on zoom event.
+     */
+    onZoom: (callback: (eventArgs: TimelineTimeChangedEvent) => void) => void;
+    /**
      * Subscribe user callback on drag event.
      */
     onDrag: (callback: (eventArgs: TimelineDragEvent) => void) => void;

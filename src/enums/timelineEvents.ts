@@ -17,4 +17,5 @@ export enum TimelineEvents {
   KeyDown = 'keyDown',
   KeyUp = 'keyUp',
   KeyPress = 'keyPress',
+  ZoomChanged = 'zoomChanged',
 }

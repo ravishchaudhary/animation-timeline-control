@@ -498,6 +498,10 @@ export class Timeline extends TimelineEventsEmitter {
     if (TimelineUtils.isNumber(zoom)) {
       zoom = TimelineUtils.keepInBounds(zoom, min, max);
       zoom = zoom || 1;
+      const timelineEvent = new TimelineTimeChangedEvent();
+      timelineEvent.val = zoom;
+      timelineEvent.prevVal = this._currentZoom;
+      this.emit(TimelineEvents.ZoomChanged, timelineEvent);
       this._currentZoom = zoom;
       return zoom;
     }
@@ -2845,6 +2849,12 @@ export class Timeline extends TimelineEventsEmitter {
    */
   public onDragStarted = (callback: (eventArgs: TimelineDragEvent) => void): void => {
     this.on(TimelineEvents.DragStarted, callback);
+  };
+  /**
+   * Subscribe user callback on zoom event.
+   */
+  public onZoom = (callback: (eventArgs: TimelineTimeChangedEvent) => void): void => {
+    this.on(TimelineEvents.ZoomChanged, callback);
   };
   /**
    * Subscribe user callback on drag event.
