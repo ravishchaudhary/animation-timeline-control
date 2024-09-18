@@ -47,10 +47,10 @@ import { TimelineEventSource } from './enums/timelineEventSource';
 import { TimelineSelectionMode } from './enums/timelineSelectionMode';
 import { TimelineEvents } from './enums/timelineEvents';
 // @private defaults are exposed:
-
 import { TimelineScrollSource } from './enums/timelineScrollSource';
 import { defaultTimelineConsts } from './settings/defaults/defaultTimelineConsts';
 import { defaultTimelineOptions } from './settings/defaults/defaultTimelineOptions';
+import {TimelineCapStyle} from './settings/styles/timelineCapStyle';
 
 export class Timeline extends TimelineEventsEmitter {
   /**
@@ -124,6 +124,12 @@ export class Timeline extends TimelineEventsEmitter {
    * Please use public get\set methods to properly change the timeline position.
    */
   _val = 0;
+  /**
+   * Private.Current duration position.
+   * Please use public get\set methods to properly change the duration position.
+   */
+  _durationVal = 0;
+
   _pixelRatio = 1;
   /**
    * Private. Current zoom level. Please use publicly available properties to set zoom levels.
@@ -168,6 +174,7 @@ export class Timeline extends TimelineEventsEmitter {
   constructor(options: TimelineOptions | null = null, model: TimelineModel | null = null) {
     super();
     this._options = TimelineUtils.cloneOptions(defaultTimelineOptions);
+    this._durationVal = options?.totalDuration ?? 0;
     // Allow to create instance without an error to perform tests.
     if (options || model) {
       this.initialize(options, model);
@@ -491,6 +498,10 @@ export class Timeline extends TimelineEventsEmitter {
     if (TimelineUtils.isNumber(zoom)) {
       zoom = TimelineUtils.keepInBounds(zoom, min, max);
       zoom = zoom || 1;
+      const timelineEvent = new TimelineTimeChangedEvent();
+      timelineEvent.val = zoom;
+      timelineEvent.prevVal = this._currentZoom;
+      this.emit(TimelineEvents.ZoomChanged, timelineEvent);
       this._currentZoom = zoom;
       return zoom;
     }
@@ -509,7 +520,15 @@ export class Timeline extends TimelineEventsEmitter {
     if (prevZoom !== zoom) {
       const zoomSet = this._setZoom(zoom);
       if (prevZoom != zoomSet) {
-        this.rescale();
+        // Get only after zoom is set
+        const zoomCenter = this.valToPx(this._val);
+        let newScrollLeft = Math.round(zoomCenter - this._canvasClientWidth() * zoom);
+        if (newScrollLeft <= 0) {
+          newScrollLeft = 0;
+        }
+
+        this._rescaleInternal(newScrollLeft + this._canvasClientWidth(), null, TimelineScrollSource.ZoomMode);
+        this.scrollLeft = newScrollLeft;
         this.redraw();
         return zoomSet;
       }
@@ -552,7 +571,7 @@ export class Timeline extends TimelineEventsEmitter {
     // target element.
     event.target = target;
 
-	console.log('_handleContextMenu', TimelineEvents.ContextMenu);
+    console.log('_handleContextMenu', TimelineEvents.ContextMenu);
     super.emit(TimelineEvents.ContextMenu, event);
   };
 
@@ -587,7 +606,7 @@ export class Timeline extends TimelineEventsEmitter {
     let onlyElements: TimelineElementType[] | null = null;
     if (this._interactionMode === TimelineInteractionMode.NonInteractivePan || this._interactionMode === TimelineInteractionMode.None) {
       // Allow to select only timeline. Timeline position can be disabled/enabled by properties.
-      onlyElements = [TimelineElementType.Timeline];
+      onlyElements = [TimelineElementType.Timeline, TimelineElementType.DurationLine];
     }
     const clickRadius = this._getClickDetectionRadius(this._startPosMouseArgs);
     const elements = this.elementFromPoint(this._startPosMouseArgs.pos, clickRadius, onlyElements);
@@ -708,7 +727,9 @@ export class Timeline extends TimelineEventsEmitter {
       if (isLeftClicked || isTouch) {
         if (this._drag && !this._startedDragWithCtrl) {
           const convertedVal = this._currentPos.val;
-          if (this._drag.type === TimelineElementType.Timeline) {
+          if (this._drag.type === TimelineElementType.DurationLine) {
+            this._setDurationInternal(convertedVal, TimelineEventSource.User);
+          } else if (this._drag.type === TimelineElementType.Timeline) {
             this._setTimeInternal(convertedVal, TimelineEventSource.User);
           } else if ((this._drag.type == TimelineElementType.Keyframe || this._drag.type == TimelineElementType.Group) && this._drag.elements) {
             const offset = Math.floor(convertedVal - this._drag.val);
@@ -755,7 +776,7 @@ export class Timeline extends TimelineEventsEmitter {
       let onlyElements: TimelineElementType[] | null = null;
       if (this._interactionMode === TimelineInteractionMode.NonInteractivePan || this._interactionMode === TimelineInteractionMode.None) {
         // Allow to select only timeline. Timeline position can be disabled/enabled by properties.
-        onlyElements = [TimelineElementType.Timeline];
+        onlyElements = [TimelineElementType.Timeline, TimelineElementType.DurationLine];
       }
       const clickRadius = this._getClickDetectionRadius(this._currentPos);
       const elements = this.elementFromPoint(this._currentPos.pos, clickRadius, onlyElements);
@@ -781,7 +802,7 @@ export class Timeline extends TimelineEventsEmitter {
           cursor = cursor || TimelineCursorType.EWResize;
         } else if (target.type == TimelineElementType.Keyframe) {
           cursor = cursor || TimelineCursorType.Pointer;
-        } else if (target.type == TimelineElementType.Timeline) {
+        } else if (target.type == TimelineElementType.Timeline || target.type === TimelineElementType.DurationLine) {
           cursor = cursor || this._options?.timelineStyle?.cursor || null;
         }
 
@@ -1675,7 +1696,7 @@ export class Timeline extends TimelineEventsEmitter {
       // draw with scroll virtualization:
       const rowHeight = TimelineStyleUtils.getRowHeight(row.style || null, this._options);
       const marginBottom = TimelineStyleUtils.getRowMarginBottom(row.style || null, this._options);
-      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0);
+      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0) + marginBottom;
       rowAbsoluteHeight += rowHeight + marginBottom;
       if (index == 0) {
         toReturn.size.y = currentRowY;
@@ -1838,6 +1859,8 @@ export class Timeline extends TimelineEventsEmitter {
           this._ctx.lineWidth = groupStrokeThickness;
           // Different radii for each corner, top-left clockwise to bottom-left
           this._ctx.beginPath();
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           this._ctx.roundRect(
             rect.x + groupStrokeThickness,
             rect.y + groupStrokeThickness,
@@ -2038,10 +2061,14 @@ export class Timeline extends TimelineEventsEmitter {
     }
     const size = keyframeViewModel.size;
     const x = this._getSharp(size.x);
-    const y = size.y;
+    let y = size.y;
 
     const keyframe = keyframeViewModel.model;
     const row = keyframeViewModel.rowViewModel.model;
+    if (row.style?.height && size.height && row.style?.height > size.height) {
+      // Centering the keyframe
+      y = y + (row.style?.height - size.height) / 2;
+    }
     const rowStyle = row.style || null;
     const groupModel = keyframeViewModel?.groupViewModel?.groupModel || null;
     const keyframeColor = keyframe.selected
@@ -2086,11 +2113,15 @@ export class Timeline extends TimelineEventsEmitter {
 
       if (border > 0 && strokeColor) {
         ctx.fillStyle = strokeColor;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         ctx.roundRect(x, y, size.width, size.height, 2);
         ctx.fill();
       }
 
       ctx.fillStyle = keyframeColor;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       ctx.roundRect(x + border, y + border, size.width - border, size.height - border, 2);
       ctx.fill();
     }
@@ -2137,7 +2168,7 @@ export class Timeline extends TimelineEventsEmitter {
   };
 
   _renderTimeline = (): void => {
-    if (!this._ctx || !this._options || !this._options.timelineStyle) {
+    if (this === null || !this._ctx || !this._options || !this._options.timelineStyle) {
       return;
     }
     const style = this._options.timelineStyle;
@@ -2146,6 +2177,7 @@ export class Timeline extends TimelineEventsEmitter {
       const thickness = style.width || 1;
       this._ctx.lineWidth = thickness * this._pixelRatio;
       const timeLinePos = this._getSharp(this._toScreenPx(this._val), thickness);
+      const timeLinePosEnd = this._getSharp(this._toScreenPx(this._durationVal), thickness);
       if (style.strokeColor) {
         this._ctx.strokeStyle = style.strokeColor;
       }
@@ -2158,7 +2190,34 @@ export class Timeline extends TimelineEventsEmitter {
       const canvasHeight = this._canvasClientHeight() - yBottom;
       TimelineUtils.drawLine(this._ctx, timeLinePos, y, timeLinePos, canvasHeight);
       this._ctx.stroke();
-      this._renderTimelineCap(timeLinePos, y);
+      this._ctx.beginPath();
+      if (style.durationStrokeColor) {
+        this._ctx.strokeStyle = style.durationStrokeColor;
+      }
+      // Majorly added only this line to draw the end of the timeline
+      TimelineUtils.drawLine(this._ctx, timeLinePosEnd, 0, timeLinePosEnd, canvasHeight);
+      this._ctx.stroke();
+      this._renderTimelineCap(timeLinePos, y, this._options?.timelineStyle?.capStyle);
+      this._renderTimelineCap(timeLinePosEnd, 0, this._options?.timelineStyle?.durationCapStyle);
+
+      // Begin a path
+      this._ctx.beginPath();
+
+      // Define a rectangle path
+      this._ctx.rect(timeLinePosEnd, 0, this._canvasClientWidth() - timeLinePosEnd, this._canvasClientHeight()); // x, y, width, height
+
+      // Set fill color
+      this._ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+
+      // Fill rectangle
+      this._ctx.fill();
+      if (this._options.headerHeight) {
+        this._ctx.beginPath();
+        this._ctx.strokeStyle = '#F2F4F7';
+        this._ctx.moveTo(0, this._options.headerHeight);
+        this._ctx.lineTo(this._canvasClientWidth(), this._options.headerHeight);
+        this._ctx.stroke();
+      }
     } finally {
       this._ctx.restore();
     }
@@ -2166,37 +2225,37 @@ export class Timeline extends TimelineEventsEmitter {
   /**
    * Render timeline cap top.
    */
-  _renderTimelineCap = (timeLinePos: number, y: number): void => {
-    const capStyle = this._options?.timelineStyle?.capStyle;
+  _renderTimelineCap = (timeLinePos: number, y: number, capStyle?: TimelineCapStyle): void => {
     if (!this._ctx || !capStyle) {
       return;
     }
     if (capStyle.capType === TimelineCapShape.None) {
       return;
     }
-    this._ctx.save();
-    try {
-      const capSize = capStyle.width || 0;
-      const capHeight = capStyle.height || 0;
-      if (capSize && capHeight) {
-        this._ctx.strokeStyle = capStyle.strokeColor || '';
-        this._ctx.fillStyle = capStyle.fillColor || 'white';
-        if (capStyle.capType === TimelineCapShape.Triangle) {
-          this._ctx.beginPath();
-          this._ctx.moveTo(timeLinePos - capSize / 2, y);
-          this._ctx.lineTo(timeLinePos + capSize / 2, y);
-          this._ctx.lineTo(timeLinePos, capHeight);
-          this._ctx.closePath();
-          this._ctx.stroke();
-        } else if (capStyle.capType === TimelineCapShape.Rect) {
-          this._ctx.fillRect(timeLinePos - capSize / 2, y, capSize, capHeight);
-          this._ctx.fill();
-        }
+
+    const capSize = capStyle.width || 0;
+    const capHeight = capStyle.height || 0;
+    if (capSize && capHeight) {
+      console.log('Rendering with color:', capStyle.fillColor); // Log the fill color for debugging
+
+      // Set the fill style for each call
+      this._ctx.fillStyle = capStyle.fillColor || 'white';
+
+      if (capStyle.capType === TimelineCapShape.Triangle) {
+        this._ctx.beginPath();
+        this._ctx.moveTo(timeLinePos - capSize / 2, y);
+        this._ctx.lineTo(timeLinePos + capSize / 2, y);
+        this._ctx.lineTo(timeLinePos + capSize / 2, y + capHeight / 2);
+        this._ctx.lineTo(timeLinePos, y + capHeight);
+        this._ctx.lineTo(timeLinePos - capSize / 2, y + capHeight / 2);
+        this._ctx.closePath();
+        this._ctx.fill();
+      } else if (capStyle.capType === TimelineCapShape.Rect) {
+        this._ctx.fillRect(timeLinePos - capSize / 2, y, capSize, capHeight);
       }
-    } finally {
-      this._ctx.restore();
     }
   };
+
   _renderHeaderBackground = (): void => {
     if (!this._ctx || !this._options) {
       return;
@@ -2246,7 +2305,7 @@ export class Timeline extends TimelineEventsEmitter {
     // Rescale when animation is played out of the bounds.
     if (this.valToPx(this._val) > this._scrollContainer.scrollWidth) {
       this.rescale();
-      if (!this._isPanStarted && this._drag && this._drag.type !== TimelineElementType.Timeline) {
+      if (!this._isPanStarted && this._drag && this._drag.type !== TimelineElementType.Timeline && this._drag.type !== TimelineElementType.DurationLine) {
         this.scrollToRightBounds();
       }
     }
@@ -2280,6 +2339,39 @@ export class Timeline extends TimelineEventsEmitter {
     return this._val;
   };
 
+  public getDuration = (): number => {
+    return this._durationVal;
+  };
+
+  /**
+   * Set duration
+   * @param val value.
+   * @param source event source.
+   */
+  _setDurationInternal = (val: number, source: TimelineEventSource = TimelineEventSource.Programmatically): boolean => {
+    if (!this._options) {
+      return false;
+    }
+    val = Math.round(val);
+    val = TimelineUtils.keepInBounds(val, this._options.min);
+    if (this._durationVal != val) {
+      const prevVal = this._durationVal;
+      const timelineEvent = new TimelineTimeChangedEvent();
+      timelineEvent.val = val;
+      timelineEvent.prevVal = prevVal;
+      timelineEvent.source = source;
+      this._durationVal = val;
+      this.emit(TimelineEvents.DurationChanged, timelineEvent);
+      if (timelineEvent.isPrevented()) {
+        this._durationVal = prevVal;
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  };
+
   /**
    * Set current time internal
    * @param val value.
@@ -2308,9 +2400,31 @@ export class Timeline extends TimelineEventsEmitter {
 
     return false;
   };
+
+  public setDuration = (val: number): boolean => {
+    // don't allow to change time during drag:
+    if (this._drag && this._drag.type === TimelineElementType.Timeline) {
+      return false;
+    }
+    if (this._drag && this._drag.type === TimelineElementType.DurationLine) {
+      return false;
+    }
+
+    const isChanged = this._setDurationInternal(val, TimelineEventSource.SetTimeMethod);
+    if (isChanged) {
+      this.rescale();
+      this.redraw();
+    }
+
+    return isChanged;
+  };
+
   public setTime = (val: number): boolean => {
     // don't allow to change time during drag:
     if (this._drag && this._drag.type === TimelineElementType.Timeline) {
+      return false;
+    }
+    if (this._drag && this._drag.type === TimelineElementType.DurationLine) {
       return false;
     }
 
@@ -2390,6 +2504,9 @@ export class Timeline extends TimelineEventsEmitter {
     // Prevent current active dragging of the timeline, while it's set that it's not allowed anymore.
     if (toSet.timelineDraggable === false) {
       if (this._drag && this._drag.type === TimelineElementType.Timeline) {
+        this._cleanUpSelection();
+      }
+      if (this._drag && this._drag.type === TimelineElementType.DurationLine) {
         this._cleanUpSelection();
       }
     }
@@ -2492,6 +2609,7 @@ export class Timeline extends TimelineEventsEmitter {
       // content should be not less than current timeline position + width of the timeline
       const timelineGlobalPos = this.valToPx(this._val) + this._leftMargin();
       let timelinePos = 0;
+      const timelineDuration = this.valToPx(this._durationVal + 1000);
       const rightPosition = this.scrollLeft + this.getClientWidth();
 
       if (timelineGlobalPos >= rightPosition) {
@@ -2513,6 +2631,8 @@ export class Timeline extends TimelineEventsEmitter {
         // not less than current scroll position
         rightPosition,
         timelinePos,
+        // not less than duration value
+        timelineDuration,
       );
 
       const minWidthPx = Math.floor(newWidth) + 'px';
@@ -2573,11 +2693,13 @@ export class Timeline extends TimelineEventsEmitter {
     // filter and sort: Timeline, individual keyframes, groups (distance).
     const getPriority = (type: TimelineElementType): number => {
       if (type === TimelineElementType.Timeline) {
-        return 1;
-      } else if (type === TimelineElementType.Keyframe) {
         return 2;
-      } else if (type === TimelineElementType.Group) {
+      } else if (type === TimelineElementType.Keyframe) {
         return 3;
+      } else if (type === TimelineElementType.Group) {
+        return 4;
+      } else if (type === TimelineElementType.DurationLine) {
+        return 1;
       }
       return -1;
     };
@@ -2622,6 +2744,7 @@ export class Timeline extends TimelineEventsEmitter {
     const headerHeight = TimelineStyleUtils.headerHeight(this._options);
     // Check whether we can drag timeline.
     const timeLinePos = this._toScreenPx(this._val);
+    const timelinePosDurationEnd = this._toScreenPx(this._durationVal);
     let width = 0;
     const timelineStyle = this._options?.timelineStyle;
     if (timelineStyle) {
@@ -2632,6 +2755,12 @@ export class Timeline extends TimelineEventsEmitter {
       toReturn.push({
         val: this._val,
         type: TimelineElementType.Timeline,
+      } as TimelineElement);
+    }
+    if (pos.x >= timelinePosDurationEnd - width / 2 && pos.x <= timelinePosDurationEnd + width / 2) {
+      toReturn.push({
+        val: this._durationVal,
+        type: TimelineElementType.DurationLine,
       } as TimelineElement);
     }
     const snap = this._options.snapEnabled;
@@ -2711,6 +2840,13 @@ export class Timeline extends TimelineEventsEmitter {
   };
 
   /**
+   * Subscribe user callback on duration changed.
+   */
+  public onDurationChanged = (callback: (eventArgs: TimelineTimeChangedEvent) => void): void => {
+    this.on(TimelineEvents.DurationChanged, callback);
+  };
+
+  /**
    * Subscribe user callback on time changed.
    */
   public onTimeChanged = (callback: (eventArgs: TimelineTimeChangedEvent) => void): void => {
@@ -2721,6 +2857,12 @@ export class Timeline extends TimelineEventsEmitter {
    */
   public onDragStarted = (callback: (eventArgs: TimelineDragEvent) => void): void => {
     this.on(TimelineEvents.DragStarted, callback);
+  };
+  /**
+   * Subscribe user callback on zoom event.
+   */
+  public onZoom = (callback: (eventArgs: TimelineTimeChangedEvent) => void): void => {
+    this.on(TimelineEvents.ZoomChanged, callback);
   };
   /**
    * Subscribe user callback on drag event.

@@ -29,4 +29,12 @@ export interface TimelineStyle {
      * Timeline cursor.
      */
     cursor?: TimelineCursorType;
+    /**
+     * Duration timeline stroke color.
+     */
+    durationStrokeColor?: string;
+    /**
+     * Duration top cap style.
+     */
+    durationCapStyle?: TimelineCapStyle;
 }

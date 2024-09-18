@@ -113,4 +113,9 @@ export interface TimelineOptions extends TimelineRanged {
    * Default: [1, 2, 5, 10];
    */
   denominators?: number[];
+
+  /**
+   * Duration of the timeline in milliseconds
+   */
+  totalDuration: number;
 }

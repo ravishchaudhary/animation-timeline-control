@@ -62,6 +62,8 @@ export class TimelineStyleUtils {
     });
     const toReturn = valuesFound && valuesFound.length > 0 ? valuesFound[0] : defaultValue;
     if (found) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       return false as T;
     }
     return TimelineStyleUtils.getValueOrDefault(toReturn, defaultValue) as T;

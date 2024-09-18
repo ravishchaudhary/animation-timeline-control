@@ -4,6 +4,7 @@
 export enum TimelineEvents {
   Selected = 'selected',
   TimeChanged = 'timechanged',
+  DurationChanged = 'durationChanged',
   KeyframeChanged = 'keyframeChanged',
   DragStarted = 'dragStarted',
   Drag = 'drag',
@@ -16,4 +17,5 @@ export enum TimelineEvents {
   KeyDown = 'keyDown',
   KeyUp = 'keyUp',
   KeyPress = 'keyPress',
+  ZoomChanged = 'zoomChanged',
 }

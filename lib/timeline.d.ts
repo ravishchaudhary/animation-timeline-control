@@ -27,6 +27,7 @@ import { TimelineEventSource } from './enums/timelineEventSource';
 import { TimelineSelectionMode } from './enums/timelineSelectionMode';
 import { TimelineEvents } from './enums/timelineEvents';
 import { TimelineScrollSource } from './enums/timelineScrollSource';
+import { TimelineCapStyle } from './settings/styles/timelineCapStyle';
 export declare class Timeline extends TimelineEventsEmitter {
     /**
      * component container.
@@ -98,6 +99,11 @@ export declare class Timeline extends TimelineEventsEmitter {
      * Please use public get\set methods to properly change the timeline position.
      */
     _val: number;
+    /**
+     * Private.Current duration position.
+     * Please use public get\set methods to properly change the duration position.
+     */
+    _durationVal: number;
     _pixelRatio: number;
     /**
      * Private. Current zoom level. Please use publicly available properties to set zoom levels.
@@ -414,7 +420,7 @@ export declare class Timeline extends TimelineEventsEmitter {
     /**
      * Render timeline cap top.
      */
-    _renderTimelineCap: (timeLinePos: number, y: number) => void;
+    _renderTimelineCap: (timeLinePos: number, y: number, capStyle?: TimelineCapStyle) => void;
     _renderHeaderBackground: () => void;
     redraw: () => void;
     /**
@@ -433,12 +439,20 @@ export declare class Timeline extends TimelineEventsEmitter {
      * Get current time:
      */
     getTime: () => number;
+    getDuration: () => number;
+    /**
+     * Set duration
+     * @param val value.
+     * @param source event source.
+     */
+    _setDurationInternal: (val: number, source?: TimelineEventSource) => boolean;
     /**
      * Set current time internal
      * @param val value.
      * @param source event source.
      */
     _setTimeInternal: (val: number, source?: TimelineEventSource) => boolean;
+    setDuration: (val: number) => boolean;
     setTime: (val: number) => boolean;
     getOptions: () => TimelineOptions;
     /**
@@ -495,6 +509,10 @@ export declare class Timeline extends TimelineEventsEmitter {
      */
     elementFromPoint: (pos: DOMPoint, clickRadius: number, onlyTypes?: TimelineElementType[] | null) => TimelineElement[];
     /**
+     * Subscribe user callback on duration changed.
+     */
+    onDurationChanged: (callback: (eventArgs: TimelineTimeChangedEvent) => void) => void;
+    /**
      * Subscribe user callback on time changed.
      */
     onTimeChanged: (callback: (eventArgs: TimelineTimeChangedEvent) => void) => void;
@@ -502,6 +520,10 @@ export declare class Timeline extends TimelineEventsEmitter {
      * Subscribe user callback on drag started event.
      */
     onDragStarted: (callback: (eventArgs: TimelineDragEvent) => void) => void;
+    /**
+     * Subscribe user callback on zoom event.
+     */
+    onZoom: (callback: (eventArgs: TimelineTimeChangedEvent) => void) => void;
     /**
      * Subscribe user callback on drag event.
      */
@@ -538,6 +560,18 @@ export declare class Timeline extends TimelineEventsEmitter {
      * Subscribe on canvas context menu event.
      */
     onContextMenu: (callback: (eventArgs: TimelineClickEvent) => void) => void;
+    /**
+     * Subscribe on canvas keydown event.
+     */
+    onKeyDown: (callback: (eventArgs: KeyboardEvent) => void) => void;
+    /**
+     * Subscribe on canvas keyup event.
+     */
+    onKeyUp: (callback: (eventArgs: KeyboardEvent) => void) => void;
+    /**
+     * Subscribe on canvas keypress event.
+     */
+    onKeyPress: (callback: (eventArgs: KeyboardEvent) => void) => void;
     /**
      * Private.
      * Emit internally scroll eve
