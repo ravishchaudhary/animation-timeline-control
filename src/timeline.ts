@@ -2234,8 +2234,6 @@ export class Timeline extends TimelineEventsEmitter {
     const capSize = capStyle.width || 0;
     const capHeight = capStyle.height || 0;
     if (capSize && capHeight) {
-      console.log('Rendering with color:', capStyle.fillColor); // Log the fill color for debugging
-
       // Set the fill style for each call
       this._ctx.fillStyle = capStyle.fillColor || 'white';
 
