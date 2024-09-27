@@ -13,4 +13,5 @@ export interface TimelineSelectionResults {
    * Whether data was changed.
    */
   selectionChanged: boolean;
+  source?: 'mousedown' | 'click';
 }

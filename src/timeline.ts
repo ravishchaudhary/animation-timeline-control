@@ -650,7 +650,7 @@ export class Timeline extends TimelineEventsEmitter {
         this._startedDragWithShiftKey = args.shiftKey;
         // get all related selected keyframes if we are selecting one.
         if (target?.keyframe && !target?.keyframe?.selected && !this._controlKeyPressed(args)) {
-          this._selectInternal(target.keyframe);
+          this._selectInternal(target.keyframe, undefined, 'mousedown');
         }
         // Allow to drag all selected keyframes on a screen
         this._drag.elements = this.getSelectedElements().map((element) => {
@@ -966,7 +966,7 @@ export class Timeline extends TimelineEventsEmitter {
         mode = TimelineSelectionMode.Append;
       }
       // Reverse selected keyframe selection by a click:
-      isChanged = this._selectInternal(drag?.target?.keyframe || null, mode).selectionChanged || isChanged;
+      isChanged = this._selectInternal(drag?.target?.keyframe || null, mode, 'click').selectionChanged || isChanged;
 
       if (pos.args.shiftKey && this._options?.timelineDraggable !== false) {
         // Set current timeline position if it's not a drag or selection rect small or fast click.
@@ -1116,7 +1116,7 @@ export class Timeline extends TimelineEventsEmitter {
    * @param nodes keyframe or list of the keyframes to be selected.
    * @param mode selection mode.
    */
-  public _selectInternal = (nodes: TimelineKeyframe[] | TimelineKeyframe | null, mode = TimelineSelectionMode.Normal): TimelineSelectionResults => {
+  public _selectInternal = (nodes: TimelineKeyframe[] | TimelineKeyframe | null, mode = TimelineSelectionMode.Normal, source?: 'mousedown' | 'click'): TimelineSelectionResults => {
     if (!nodes) {
       nodes = [];
     }
@@ -1128,6 +1128,7 @@ export class Timeline extends TimelineEventsEmitter {
       selectionChanged: false,
       selected: this.getSelectedKeyframes(),
       changed: [] as Array<any>,
+	  source,
     } as TimelineSelectionResults;
     const nodesArray = nodes as TimelineKeyframe[];
     //const state = this.selectedSubject.getValue();
@@ -3018,6 +3019,7 @@ export class Timeline extends TimelineEventsEmitter {
     const args = new TimelineSelectedEvent();
     args.selected = state.selected;
     args.changed = state.changed;
+    args.source = state.source;
     this.emit<TimelineSelectedEvent>(TimelineEvents.Selected, args);
     return args;
   };
