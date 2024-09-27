@@ -650,7 +650,7 @@ export class Timeline extends TimelineEventsEmitter {
         this._startedDragWithShiftKey = args.shiftKey;
         // get all related selected keyframes if we are selecting one.
         if (target?.keyframe && !target?.keyframe?.selected && !this._controlKeyPressed(args)) {
-          this._selectInternal(target.keyframe, undefined, 'mousedown');
+          this._selectInternal(target.keyframe);
         }
         // Allow to drag all selected keyframes on a screen
         this._drag.elements = this.getSelectedElements().map((element) => {
@@ -966,7 +966,7 @@ export class Timeline extends TimelineEventsEmitter {
         mode = TimelineSelectionMode.Append;
       }
       // Reverse selected keyframe selection by a click:
-      isChanged = this._selectInternal(drag?.target?.keyframe || null, mode, 'click').selectionChanged || isChanged;
+      isChanged = this._selectInternal(drag?.target?.keyframe || null, mode).selectionChanged || isChanged;
 
       if (pos.args.shiftKey && this._options?.timelineDraggable !== false) {
         // Set current timeline position if it's not a drag or selection rect small or fast click.
@@ -1116,7 +1116,7 @@ export class Timeline extends TimelineEventsEmitter {
    * @param nodes keyframe or list of the keyframes to be selected.
    * @param mode selection mode.
    */
-  public _selectInternal = (nodes: TimelineKeyframe[] | TimelineKeyframe | null, mode = TimelineSelectionMode.Normal, source?: 'mousedown' | 'click'): TimelineSelectionResults => {
+  public _selectInternal = (nodes: TimelineKeyframe[] | TimelineKeyframe | null, mode = TimelineSelectionMode.Normal): TimelineSelectionResults => {
     if (!nodes) {
       nodes = [];
     }
@@ -1128,7 +1128,6 @@ export class Timeline extends TimelineEventsEmitter {
       selectionChanged: false,
       selected: this.getSelectedKeyframes(),
       changed: [] as Array<any>,
-	  source,
     } as TimelineSelectionResults;
     const nodesArray = nodes as TimelineKeyframe[];
     //const state = this.selectedSubject.getValue();
@@ -1697,12 +1696,10 @@ export class Timeline extends TimelineEventsEmitter {
       // draw with scroll virtualization:
       const rowHeight = TimelineStyleUtils.getRowHeight(row.style || null, this._options);
       const marginBottom = TimelineStyleUtils.getRowMarginBottom(row.style || null, this._options);
-      let currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0);
+      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0) + marginBottom;
       rowAbsoluteHeight += rowHeight + marginBottom;
       if (index == 0) {
-        rowAbsoluteHeight += marginBottom;
-        currentRowY += marginBottom;
-        toReturn.size.y = currentRowY + marginBottom;
+        toReturn.size.y = currentRowY;
       }
 
       toReturn.size.height = Math.max(rowAbsoluteHeight + rowHeight, toReturn.size.height);
@@ -2064,10 +2061,14 @@ export class Timeline extends TimelineEventsEmitter {
     }
     const size = keyframeViewModel.size;
     const x = this._getSharp(size.x);
-    const y = size.y;
+    let y = size.y;
 
     const keyframe = keyframeViewModel.model;
     const row = keyframeViewModel.rowViewModel.model;
+    if (row.style?.height && size.height && row.style?.height > size.height) {
+      // Centering the keyframe
+      y = y + (row.style?.height - size.height) / 2;
+    }
     const rowStyle = row.style || null;
     const groupModel = keyframeViewModel?.groupViewModel?.groupModel || null;
     const keyframeColor = keyframe.selected
@@ -2235,6 +2236,8 @@ export class Timeline extends TimelineEventsEmitter {
     const capSize = capStyle.width || 0;
     const capHeight = capStyle.height || 0;
     if (capSize && capHeight) {
+      console.log('Rendering with color:', capStyle.fillColor); // Log the fill color for debugging
+
       // Set the fill style for each call
       this._ctx.fillStyle = capStyle.fillColor || 'white';
 
@@ -3019,7 +3022,6 @@ export class Timeline extends TimelineEventsEmitter {
     const args = new TimelineSelectedEvent();
     args.selected = state.selected;
     args.changed = state.changed;
-    args.source = state.source;
     this.emit<TimelineSelectedEvent>(TimelineEvents.Selected, args);
     return args;
   };

@@ -14,5 +14,4 @@ export class TimelineSelectedEvent {
    * Selection mode.
    */
   mode: TimelineSelectionEventSource = TimelineSelectionEventSource.Keyframes;
-  source?: 'mousedown' | 'click';
 }
