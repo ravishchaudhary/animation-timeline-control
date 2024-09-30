@@ -977,9 +977,11 @@ export class Timeline extends TimelineEventsEmitter {
       isChanged = this._selectInternal(null).selectionChanged || isChanged;
 
       if (this._options?.timelineDraggable !== false) {
-        // change timeline pos:
-        // Set current timeline position if it's not a drag or selection rect small or fast click.
-        isChanged = this._setTimeInternal(pos.val, TimelineEventSource.User) || isChanged;
+        const headerHeight = TimelineStyleUtils.headerHeight(this._options);
+        if (pos.pos.y < headerHeight) {
+          // Set current timeline position if it's not a drag or selection rect small or fast click.
+          isChanged = this._setTimeInternal(pos.val, TimelineEventSource.User) || isChanged;
+        }
       }
     }
 
@@ -2693,13 +2695,13 @@ export class Timeline extends TimelineEventsEmitter {
     // filter and sort: Timeline, individual keyframes, groups (distance).
     const getPriority = (type: TimelineElementType): number => {
       if (type === TimelineElementType.Timeline) {
-        return 2;
-      } else if (type === TimelineElementType.Keyframe) {
-        return 3;
-      } else if (type === TimelineElementType.Group) {
         return 4;
-      } else if (type === TimelineElementType.DurationLine) {
+      } else if (type === TimelineElementType.Keyframe) {
         return 1;
+      } else if (type === TimelineElementType.Group) {
+        return 2;
+      } else if (type === TimelineElementType.DurationLine) {
+        return 3;
       }
       return -1;
     };
