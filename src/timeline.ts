@@ -1698,10 +1698,12 @@ export class Timeline extends TimelineEventsEmitter {
       // draw with scroll virtualization:
       const rowHeight = TimelineStyleUtils.getRowHeight(row.style || null, this._options);
       const marginBottom = TimelineStyleUtils.getRowMarginBottom(row.style || null, this._options);
-      const currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0) + marginBottom;
+      let currentRowY = rowAbsoluteHeight - (this._scrollContainer ? this._scrollContainer.scrollTop : 0);
       rowAbsoluteHeight += rowHeight + marginBottom;
       if (index == 0) {
-        toReturn.size.y = currentRowY;
+        rowAbsoluteHeight += marginBottom;
+        currentRowY += marginBottom;
+        toReturn.size.y = currentRowY + marginBottom;
       }
 
       toReturn.size.height = Math.max(rowAbsoluteHeight + rowHeight, toReturn.size.height);
@@ -2063,14 +2065,10 @@ export class Timeline extends TimelineEventsEmitter {
     }
     const size = keyframeViewModel.size;
     const x = this._getSharp(size.x);
-    let y = size.y;
+    const y = size.y;
 
     const keyframe = keyframeViewModel.model;
     const row = keyframeViewModel.rowViewModel.model;
-    if (row.style?.height && size.height && row.style?.height > size.height) {
-      // Centering the keyframe
-      y = y + (row.style?.height - size.height) / 2;
-    }
     const rowStyle = row.style || null;
     const groupModel = keyframeViewModel?.groupViewModel?.groupModel || null;
     const keyframeColor = keyframe.selected
@@ -2238,8 +2236,6 @@ export class Timeline extends TimelineEventsEmitter {
     const capSize = capStyle.width || 0;
     const capHeight = capStyle.height || 0;
     if (capSize && capHeight) {
-      console.log('Rendering with color:', capStyle.fillColor); // Log the fill color for debugging
-
       // Set the fill style for each call
       this._ctx.fillStyle = capStyle.fillColor || 'white';
 
