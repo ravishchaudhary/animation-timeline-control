@@ -439,7 +439,9 @@ export class Timeline extends TimelineEventsEmitter {
       const mousePos = Math.max(0, mousePosArguments.pos.x || 0);
       this._zoom(TimelineUtils.sign(event.deltaY), this._options.zoomSpeed || 0, mousePos);
     } else {
-      this.scrollTop = this._scrollContainer.scrollTop + event.deltaY;
+      if (this._options.disableScrollY !== true) {
+        this.scrollTop = this._scrollContainer.scrollTop + event.deltaY;
+      }
       event.preventDefault();
     }
   };
@@ -1365,7 +1367,9 @@ export class Timeline extends TimelineEventsEmitter {
     } else {
       this.scrollLeft = newLeft;
     }
-    this.scrollTop = Math.round(y + start.y - pos.y);
+    if (this._options.disableScrollY !== true) {
+      this.scrollTop = Math.round(y + start.y - pos.y);
+    }
   }
 
   _scrollBySelectionOutOfBounds(pos: DOMPoint): boolean {
@@ -1424,7 +1428,7 @@ export class Timeline extends TimelineEventsEmitter {
       isChanged = true;
     }
 
-    if (Math.abs(speedY) > 0) {
+    if (Math.abs(speedY) > 0 && this._options.disableScrollY !== true) {
       this.scrollTop = this._scrollContainer.scrollTop + speedY;
       isChanged = true;
     }
