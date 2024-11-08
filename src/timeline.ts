@@ -753,15 +753,18 @@ export class Timeline extends TimelineEventsEmitter {
           }
         }
 
-        if ((this._interactionMode === TimelineInteractionMode.Pan || this._interactionMode === TimelineInteractionMode.NonInteractivePan) && !this._drag) {
-          this._isPanStarted = true;
-          this._setCursor(TimelineCursorType.Grabbing);
-          // Track scroll by drag.
-          this._scrollByPan(this._startPosMouseArgs.pos, this._currentPos.pos, this._scrollStartPos);
-        } else {
-          if (this._interactionMode !== TimelineInteractionMode.None) {
-            // Track scroll by mouse or touch out of the area.
-            this._scrollBySelectionOutOfBounds(this._currentPos.pos);
+        // If max limit defined in no case allow the user to go beyond the limit.
+        if (this._durationVal > 0 && (this._currentPos.val < this._durationVal || this._options.max === null || this._options.max === undefined)) {
+          if ((this._interactionMode === TimelineInteractionMode.Pan || this._interactionMode === TimelineInteractionMode.NonInteractivePan) && !this._drag) {
+            this._isPanStarted = true;
+            this._setCursor(TimelineCursorType.Grabbing);
+            // Track scroll by drag.
+            this._scrollByPan(this._startPosMouseArgs.pos, this._currentPos.pos, this._scrollStartPos);
+          } else {
+            if (this._interactionMode !== TimelineInteractionMode.None) {
+              // Track scroll by mouse or touch out of the area.
+              this._scrollBySelectionOutOfBounds(this._currentPos.pos);
+            }
           }
         }
 
@@ -2195,7 +2198,9 @@ export class Timeline extends TimelineEventsEmitter {
         this._ctx.strokeStyle = style.durationStrokeColor;
       }
       // Majorly added only this line to draw the end of the timeline
-      TimelineUtils.drawLine(this._ctx, timeLinePosEnd, 0, timeLinePosEnd, canvasHeight);
+      if (style.durationCapStyle || style.durationStrokeColor) {
+        TimelineUtils.drawLine(this._ctx, timeLinePosEnd, 0, timeLinePosEnd, canvasHeight);
+      }
       this._ctx.stroke();
       this._renderTimelineCap(timeLinePos, y, this._options?.timelineStyle?.capStyle);
       this._renderTimelineCap(timeLinePosEnd, 0, this._options?.timelineStyle?.durationCapStyle);
@@ -2399,12 +2404,12 @@ export class Timeline extends TimelineEventsEmitter {
     return false;
   };
 
-  public setDuration = (val: number): boolean => {
+  public setDuration = (val: number, force?: boolean): boolean => {
     // don't allow to change time during drag:
-    if (this._drag && this._drag.type === TimelineElementType.Timeline) {
+    if (this._drag && this._drag.type === TimelineElementType.Timeline && force !== true) {
       return false;
     }
-    if (this._drag && this._drag.type === TimelineElementType.DurationLine) {
+    if (this._drag && this._drag.type === TimelineElementType.DurationLine && force !== true) {
       return false;
     }
 
@@ -2684,6 +2689,14 @@ export class Timeline extends TimelineEventsEmitter {
     });
     return filteredElements;
   };
+
+  /**
+   * Check if duration line present
+   */
+  _isDurationLinePresent(): boolean {
+    return (this._options.timelineStyle?.durationCapStyle !== undefined || this._options.timelineStyle?.durationStrokeColor !== undefined)
+  }
+
   /**
    * Filter and sort draggable elements by the priority to get first draggable element closest to the passed value.
    */
@@ -2696,7 +2709,7 @@ export class Timeline extends TimelineEventsEmitter {
         return 1;
       } else if (type === TimelineElementType.Group) {
         return 2;
-      } else if (type === TimelineElementType.DurationLine) {
+      } else if (type === TimelineElementType.DurationLine && this._isDurationLinePresent()) {
         return 3;
       }
       return -1;
@@ -2755,7 +2768,7 @@ export class Timeline extends TimelineEventsEmitter {
         type: TimelineElementType.Timeline,
       } as TimelineElement);
     }
-    if (pos.x >= timelinePosDurationEnd - width / 2 && pos.x <= timelinePosDurationEnd + width / 2) {
+    if (pos.x >= timelinePosDurationEnd - width / 2 && pos.x <= timelinePosDurationEnd + width / 2 && this._isDurationLinePresent()) {
       toReturn.push({
         val: this._durationVal,
         type: TimelineElementType.DurationLine,
