@@ -452,7 +452,7 @@ export declare class Timeline extends TimelineEventsEmitter {
      * @param source event source.
      */
     _setTimeInternal: (val: number, source?: TimelineEventSource) => boolean;
-    setDuration: (val: number) => boolean;
+    setDuration: (val: number, force?: boolean) => boolean;
     setTime: (val: number) => boolean;
     getOptions: () => TimelineOptions;
     /**
@@ -500,6 +500,10 @@ export declare class Timeline extends TimelineEventsEmitter {
      * Filtration is done based on the timeline styles and options.
      */
     _filterDraggableElements: (elements: TimelineElement[]) => TimelineElement[];
+    /**
+     * Check if duration line present
+     */
+    _isDurationLinePresent(): boolean;
     /**
      * Filter and sort draggable elements by the priority to get first draggable element closest to the passed value.
      */
