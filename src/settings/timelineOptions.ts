@@ -118,4 +118,9 @@ export interface TimelineOptions extends TimelineRanged {
    * Duration of the timeline in milliseconds
    */
   totalDuration: number;
+
+  /**
+   * Disable vertical scrolling
+   */
+  disableScrollY?: boolean;
 }
