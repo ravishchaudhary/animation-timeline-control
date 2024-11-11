@@ -2460,6 +2460,9 @@ export class Timeline extends TimelineEventsEmitter {
       return false;
     }
 
+    if (this.scrollLeft + this._canvasClientWidth() < this.valToPx(val)) {
+      this.scrollLeft = this.valToPx(val) - this._canvasClientWidth() + 30;
+    }
     const isChanged = this._setTimeInternal(val, TimelineEventSource.SetTimeMethod);
     if (isChanged) {
       this.rescale();
