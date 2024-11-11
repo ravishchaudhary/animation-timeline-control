@@ -1825,6 +1825,26 @@ export class Timeline extends TimelineEventsEmitter {
         }
 
         this._renderGroupBounds(rowViewModel);
+        if (bounds?.rect && rowViewModel.model.keyframes?.[0].metadata.frames?.[0]) {
+          const rect = bounds?.rect;
+          // this._ctx.drawImage(rowViewModel.model.keyframes[0].metadata.frames[0], (this._options.leftMargin ?? 0), rect.y, 400, rect.height);
+          // Add a semi transparent rect
+          // Change hex color to semi-transparent
+          const rowColor = rowViewModel.model.style?.fillColor ?? this._options.rowsStyle?.fillColor ?? '#FFFFFF';
+          if (rowColor.startsWith('#') && rowColor.length === 9) {
+            // BF is for 75% opacity
+            this._ctx.fillStyle = rowColor.substring(0, 7) + 'BF';
+          }
+          const startPixelVal = this.valToPx(rowViewModel.model.keyframes[0]?.val ?? 0) - this.scrollLeft;
+          const endPixelVal = this.valToPx(rowViewModel.model.keyframes[1]?.val ?? 0) - this.scrollLeft;
+          const durationPixelVal = this.valToPx(this._durationVal ?? 0);
+          if (startPixelVal > 0) {
+            this._ctx.fillRect(rect.x + (this._options.leftMargin ?? 0), rect.y, startPixelVal, rect.height);
+          }
+          if (endPixelVal < durationPixelVal) {
+            this._ctx.fillRect(rect.x + (this._options.leftMargin ?? 0) + endPixelVal, rect.y, durationPixelVal - endPixelVal, rect.height);
+          }
+        }
       });
     } finally {
       this._ctx.restore();
@@ -2316,7 +2336,12 @@ export class Timeline extends TimelineEventsEmitter {
         this.scrollToRightBounds();
       }
     }
-
+    const timelineColor = this._options.fillColor ?? '#FFFFFF';
+    // If timeline color has some opacity clear it every time before render
+    if (timelineColor.startsWith('#') && timelineColor.length === 9 && !timelineColor.endsWith('FF')) {
+      const yBottom = this._options.timelineStyle?.marginBottom || 0;
+      this._ctx.clearRect(0, TimelineStyleUtils.headerHeight(this._options), this._canvasClientWidth(), this._canvasClientHeight() - yBottom - TimelineStyleUtils.headerHeight(this._options));
+    }
     this._renderBackground();
     this._renderRows();
     // Render after rows
