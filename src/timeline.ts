@@ -1827,6 +1827,28 @@ export class Timeline extends TimelineEventsEmitter {
         this._renderGroupBounds(rowViewModel);
         if (bounds?.rect && rowViewModel.model.keyframes?.[0].metadata.frames?.[0]) {
           const rect = bounds?.rect;
+          const startPixelVal = this.valToPx(rowViewModel.model.keyframes[0]?.val ?? 0) - this.scrollLeft;
+          const endPixelVal = this.valToPx(rowViewModel.model.keyframes[1]?.val ?? 0) - this.scrollLeft;
+          const durationPixelVal = this.valToPx(this._durationVal ?? 0);
+
+          const frameWidth = rowViewModel.model.keyframes?.[0].metadata.frameWidth;
+          if (!isNaN(frameWidth) && frameWidth > 0) {
+            const totalFrames = rowViewModel.model.keyframes[0].metadata.frames.length;
+            const maxFrames = Math.floor(durationPixelVal / frameWidth);
+            let frameGap = 0;
+            if (totalFrames < maxFrames) {
+              frameGap = (maxFrames - totalFrames) * frameWidth / (totalFrames - 1);
+            }
+            for (let i = 0; i < maxFrames > totalFrames ? totalFrames : maxFrames; i++) {
+              const leftX = (frameWidth + frameGap) * i;
+              const frameIndex = Math.floor((leftX / durationPixelVal) * totalFrames);
+              const frame = rowViewModel.model.keyframes[0].metadata.frames[frameIndex];
+              const frameX = rect.x + (this._options.leftMargin ?? 0) + leftX - this.scrollLeft;
+              if (frameX > 0) {
+                this._ctx.drawImage(frame, frameX, rect.y, frameWidth, rect.height);
+              }
+            }
+          }
           // this._ctx.drawImage(rowViewModel.model.keyframes[0].metadata.frames[0], (this._options.leftMargin ?? 0), rect.y, 400, rect.height);
           // Add a semi transparent rect
           // Change hex color to semi-transparent
@@ -1835,9 +1857,6 @@ export class Timeline extends TimelineEventsEmitter {
             // BF is for 75% opacity
             this._ctx.fillStyle = rowColor.substring(0, 7) + 'BF';
           }
-          const startPixelVal = this.valToPx(rowViewModel.model.keyframes[0]?.val ?? 0) - this.scrollLeft;
-          const endPixelVal = this.valToPx(rowViewModel.model.keyframes[1]?.val ?? 0) - this.scrollLeft;
-          const durationPixelVal = this.valToPx(this._durationVal ?? 0);
           if (startPixelVal > 0) {
             this._ctx.fillRect(rect.x + (this._options.leftMargin ?? 0), rect.y, startPixelVal, rect.height);
           }
