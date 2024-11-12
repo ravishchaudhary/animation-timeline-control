@@ -1839,12 +1839,12 @@ export class Timeline extends TimelineEventsEmitter {
             if (totalFrames < maxFrames) {
               frameGap = (maxFrames - totalFrames) * frameWidth / (totalFrames - 1);
             }
-            for (let i = 0; i < maxFrames > totalFrames ? totalFrames : maxFrames; i++) {
+            for (let i = 0; i < Math.min(maxFrames, totalFrames); i++) {
               const leftX = (frameWidth + frameGap) * i;
               const frameIndex = Math.floor((leftX / durationPixelVal) * totalFrames);
               const frame = rowViewModel.model.keyframes[0].metadata.frames[frameIndex];
               const frameX = rect.x + (this._options.leftMargin ?? 0) + leftX - this.scrollLeft;
-              if (frameX > 0) {
+              if (frameX >= 0 && frame) {
                 this._ctx.drawImage(frame, frameX, rect.y, frameWidth, rect.height);
               }
             }
