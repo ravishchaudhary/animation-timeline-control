@@ -1832,6 +1832,7 @@ export class Timeline extends TimelineEventsEmitter {
           const durationPixelVal = this.valToPx(this._durationVal ?? 0);
 
           const frameWidth = rowViewModel.model.keyframes?.[0].metadata.frameWidth;
+          const scaleFactor: number = rowViewModel.model.keyframes?.[0].metadata.scaleFactor ?? 1;
           if (!isNaN(frameWidth) && frameWidth > 0) {
             const totalFrames = rowViewModel.model.keyframes[0].metadata.frames.length;
             const maxFrames = Math.floor(durationPixelVal / frameWidth);
@@ -1839,13 +1840,18 @@ export class Timeline extends TimelineEventsEmitter {
             if (totalFrames < maxFrames) {
               frameGap = (maxFrames - totalFrames) * frameWidth / (totalFrames - 1);
             }
-            for (let i = 0; i < Math.min(maxFrames, totalFrames); i++) {
+            for (let i = 0; i < Math.min(maxFrames + 1, totalFrames); i++) {
               const leftX = (frameWidth + frameGap) * i;
               const frameIndex = Math.floor((leftX / durationPixelVal) * totalFrames);
               const frame = rowViewModel.model.keyframes[0].metadata.frames[frameIndex];
               const frameX = rect.x + (this._options.leftMargin ?? 0) + leftX - this.scrollLeft;
               if (frameX >= 0 && frame) {
-                this._ctx.drawImage(frame, frameX, rect.y, frameWidth, rect.height);
+                if (frameX + frameWidth <= durationPixelVal) {
+                  this._ctx.drawImage(frame, frameX, rect.y, frameWidth, rect.height);
+                } else {
+                  const newWidth = durationPixelVal - frameX + this._leftMargin();
+                  this._ctx.drawImage(frame, 0, 0, newWidth / scaleFactor, rect.height / scaleFactor, frameX, rect.y, newWidth, rect.height);
+                }
               }
             }
           }
