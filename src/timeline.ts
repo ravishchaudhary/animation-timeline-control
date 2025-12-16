@@ -442,6 +442,7 @@ export class Timeline extends TimelineEventsEmitter {
       if (this._options.disableScrollY !== true) {
         this.scrollTop = this._scrollContainer.scrollTop + event.deltaY;
       }
+      this.scrollLeft = this._scrollContainer.scrollLeft + event.deltaX;
       event.preventDefault();
     }
   };
