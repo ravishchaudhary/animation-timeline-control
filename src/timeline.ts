@@ -435,9 +435,7 @@ export class Timeline extends TimelineEventsEmitter {
     }
     if (this._controlKeyPressed(event)) {
       event.preventDefault();
-      const mousePosArguments = this._getMousePos(this._canvas, event);
-      const mousePos = Math.max(0, mousePosArguments.pos.x || 0);
-      this._zoom(TimelineUtils.sign(event.deltaY), this._options.zoomSpeed || 0, mousePos);
+      this._zoom(TimelineUtils.sign(event.deltaY), this._options.zoomSpeed || 0, 0);
     } else {
       if (this._options.disableScrollY !== true) {
         this.scrollTop = this._scrollContainer.scrollTop + event.deltaY;
@@ -899,7 +897,9 @@ export class Timeline extends TimelineEventsEmitter {
       if (this._clickAllowed || !this._clickTimeoutIsOver() || (this._drag && (this._startedDragWithCtrl || this._startedDragWithShiftKey))) {
         if (this._options && this._interactionMode === TimelineInteractionMode.Zoom) {
           const direction = this._controlKeyPressed(args) ? 1 : -1;
-          this._zoom(direction, this._options.zoomSpeed || 0, 0);
+          const mouseArgs = this._getMousePos(this._canvas, args);
+          const mousePos = Math.max(0, mouseArgs.pos.x || 0);
+          this._zoom(direction, this._options.zoomSpeed || 0, mousePos);
         } else {
           this._performClick(pos, this._drag);
         }
