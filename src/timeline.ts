@@ -448,8 +448,6 @@ export class Timeline extends TimelineEventsEmitter {
   };
   _zoom = (direction: number, speed: number, x: number): void => {
     if (speed && speed > 0 && speed <= 1) {
-      const deltaSpeed = TimelineUtils.getDistance(this._canvasClientWidth() / 2, x) * 0.2;
-      x = x + deltaSpeed;
       const diff = this._canvasClientWidth() / x;
       const val = this._fromScreen(x);
       const zoom = direction * this._currentZoom * speed;
