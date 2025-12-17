@@ -454,7 +454,12 @@ export class Timeline extends TimelineEventsEmitter {
       const val = this._fromScreen(x);
       const zoom = direction * this._currentZoom * speed;
       //this._options.zoom
+      const prevZoom = this._currentZoom;
       this._currentZoom = this._setZoom(this._currentZoom + zoom);
+      // Don't update scroll if zoom didn't change (hit min/max bound)
+      if (this._currentZoom === prevZoom) {
+        return;
+      }
       // Get only after zoom is set
       const zoomCenter = this.valToPx(val);
       let newScrollLeft = Math.round(zoomCenter - this._canvasClientWidth() / diff);
