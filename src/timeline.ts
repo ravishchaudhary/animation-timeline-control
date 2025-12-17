@@ -899,9 +899,7 @@ export class Timeline extends TimelineEventsEmitter {
       if (this._clickAllowed || !this._clickTimeoutIsOver() || (this._drag && (this._startedDragWithCtrl || this._startedDragWithShiftKey))) {
         if (this._options && this._interactionMode === TimelineInteractionMode.Zoom) {
           const direction = this._controlKeyPressed(args) ? 1 : -1;
-          const mouseArgs = this._getMousePos(this._canvas, args);
-          const mousePos = Math.max(0, mouseArgs.pos.x || 0);
-          this._zoom(direction, this._options.zoomSpeed || 0, mousePos);
+          this._zoom(direction, this._options.zoomSpeed || 0, 0);
         } else {
           this._performClick(pos, this._drag);
         }
