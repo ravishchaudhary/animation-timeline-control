@@ -435,25 +435,27 @@ export class Timeline extends TimelineEventsEmitter {
     }
     if (this._controlKeyPressed(event)) {
       event.preventDefault();
-      const mousePosArguments = this._getMousePos(this._canvas, event);
-      const mousePos = Math.max(0, mousePosArguments.pos.x || 0);
-      this._zoom(TimelineUtils.sign(event.deltaY), this._options.zoomSpeed || 0, mousePos);
+      this._zoom(TimelineUtils.sign(event.deltaY), this._options.zoomSpeed || 0, 0);
     } else {
       if (this._options.disableScrollY !== true) {
         this.scrollTop = this._scrollContainer.scrollTop + event.deltaY;
       }
+      this.scrollLeft = this._scrollContainer.scrollLeft + event.deltaX;
       event.preventDefault();
     }
   };
   _zoom = (direction: number, speed: number, x: number): void => {
     if (speed && speed > 0 && speed <= 1) {
-      const deltaSpeed = TimelineUtils.getDistance(this._canvasClientWidth() / 2, x) * 0.2;
-      x = x + deltaSpeed;
       const diff = this._canvasClientWidth() / x;
       const val = this._fromScreen(x);
       const zoom = direction * this._currentZoom * speed;
       //this._options.zoom
+      const prevZoom = this._currentZoom;
       this._currentZoom = this._setZoom(this._currentZoom + zoom);
+      // Don't update scroll if zoom didn't change (hit min/max bound)
+      if (this._currentZoom === prevZoom) {
+        return;
+      }
       // Get only after zoom is set
       const zoomCenter = this.valToPx(val);
       let newScrollLeft = Math.round(zoomCenter - this._canvasClientWidth() / diff);
