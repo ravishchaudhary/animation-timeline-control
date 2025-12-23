@@ -2599,13 +2599,20 @@ export class Timeline extends TimelineEventsEmitter {
    * Apply container div size to the container on changes detected.
    */
   _updateCanvasScale = (): boolean => {
-    if (!this._scrollContainer || !this._container || !this._ctx) {
+    if (!this._scrollContainer || !this._container || !this._ctx || !this._canvas) {
       console.log('Component should be initialized first.');
       return false;
     }
     let changed = false;
-    const width = this._scrollContainer.clientWidth * this._pixelRatio;
-    const height = this._scrollContainer.clientHeight * this._pixelRatio;
+    // High DPI fix from Stack Overflow
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = this._scrollContainer.clientWidth;
+    const cssHeight = this._scrollContainer.clientHeight;
+    
+    // Set the "actual" size of the canvas (bitmap)
+    const width = cssWidth * dpr;
+    const height = cssHeight * dpr;
+    
     if (Math.floor(width) != Math.floor(this._ctx.canvas.width)) {
       this._ctx.canvas.width = width;
       changed = true;
@@ -2617,7 +2624,9 @@ export class Timeline extends TimelineEventsEmitter {
     }
 
     if (changed) {
-      this._ctx.setTransform(this._pixelRatio, 0, 0, this._pixelRatio, 0, 0);
+      this._ctx.scale(dpr, dpr);
+      this._canvas.style.width = cssWidth + 'px';
+      this._canvas.style.height = cssHeight + 'px';
     }
     return changed;
   };
