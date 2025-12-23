@@ -2581,9 +2581,10 @@ export class Timeline extends TimelineEventsEmitter {
       clientY = e.clientY;
     }
 
+    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect(), // abs. size of element
-      scaleX = canvas.width / this._pixelRatio / rect.width, // relationship bitmap vs. element for X
-      scaleY = canvas.height / this._pixelRatio / rect.height; // relationship bitmap vs. element for Y
+      scaleX = canvas.width / dpr / rect.width, // relationship bitmap vs. element for X
+      scaleY = canvas.height / dpr / rect.height; // relationship bitmap vs. element for Y
 
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
