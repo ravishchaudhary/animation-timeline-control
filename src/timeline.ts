@@ -1528,43 +1528,27 @@ export class Timeline extends TimelineEventsEmitter {
   _formatUnitsText = (ms: number): string => {
     const sign = TimelineUtils.sign(ms) < 0 ? '-' : '';
     ms = Math.abs(ms);
-    // 1- Convert to seconds:
-    let seconds = ms / 1000;
-
-    const year = Math.floor(seconds / (365 * 86400));
-    seconds = seconds % (365 * 86400);
-
-    const days = Math.floor(seconds / 86400);
-    seconds = seconds % 86400;
-
-    // 2- Extract hours:
-    const hours = Math.floor(seconds / 3600); // 3,600 seconds in 1 hour
-    seconds = seconds % 3600; // seconds remaining after extracting hours
-    // 3- Extract minutes:
-    const minutes = Math.floor(seconds / 60); // 60 seconds in 1 minute
-    // 4- Keep only seconds not extracted to minutes:
-    seconds = seconds % 60;
+    
+    // Only show whole seconds (1s intervals and above)
+    const totalSeconds = Math.floor(ms / 1000);
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
     let str = '';
-    if (year) {
-      str += year + ':';
+    
+    if (hours > 0) {
+      // 1 hour or more: 1h30m0s format
+      str = hours + 'h' + minutes + 'm' + seconds + 's';
+    } else if (minutes > 0) {
+      // 1 minute or more: 1m30s format
+      str = minutes + 'm' + seconds + 's';
+    } else {
+      // Under 1 minute: show seconds only
+      str = seconds + 's';
     }
-
-    if (days) {
-      str += days + ':';
-    }
-
-    if (hours) {
-      str += hours + ':';
-    }
-
-    if (minutes) {
-      str += hours ? TimelineUtils.timePadZero(minutes) : minutes + ':';
-    }
-
-    if (!isNaN(seconds)) {
-      str += minutes ? TimelineUtils.timePadZero(seconds) : seconds;
-    }
-
+    
     return sign + str;
   };
   /**
@@ -1612,61 +1596,50 @@ export class Timeline extends TimelineEventsEmitter {
     if (!TimelineUtils.isNumber(step) || step <= 0 || Math.abs(toVal - fromVal) === 0) {
       return;
     }
-    let smallStep = 0;
-    if (this._options.stepSmallPx) {
-      smallStep = TimelineUtils.findGoodStep(valDistance / (screenWidth / this._options.stepSmallPx), 0, this._options?.denominators);
-    }
-
     let lastTextStart = 0;
     this._ctx.save();
     const headerHeight = TimelineStyleUtils.headerHeight(this._options);
     const tickHeight = headerHeight / 2;
-    const smallTickHeight = headerHeight / 1.3;
+    const smallTickHeight = headerHeight / 1.7;
     for (let i = fromVal; i <= toVal; i += step) {
       // local
       const sharpPos = this._getSharp(this._toScreenPx(i));
+      const isLabelTick = i % 1000 === 0;
+      
       this._ctx.save();
       this._ctx.beginPath();
-      this._ctx.setLineDash([4]);
+      // Dashed for label ticks, solid for non-label ticks
+      this._ctx.setLineDash(isLabelTick ? [4] : []);
       this._ctx.lineWidth = 1;
       if (this._options.tickColor) {
         this._ctx.strokeStyle = this._options.tickColor;
       }
-      TimelineUtils.drawLine(this._ctx, sharpPos, tickHeight, sharpPos, headerHeight);
+      // Use shorter height for non-label ticks
+      const currentTickHeight = isLabelTick ? tickHeight : smallTickHeight;
+      TimelineUtils.drawLine(this._ctx, sharpPos, currentTickHeight, sharpPos, headerHeight);
       this._ctx.stroke();
-      if (this._options.labelsColor) {
-        this._ctx.fillStyle = this._options.labelsColor;
-      }
-      if (this._options.font) {
-        this._ctx.font = this._options.font;
-      }
+      
+      // Only show labels at whole second boundaries (1000ms intervals)
+      if (isLabelTick) {
+        if (this._options.labelsColor) {
+          this._ctx.fillStyle = this._options.labelsColor;
+        }
+        if (this._options.font) {
+          this._ctx.font = this._options.font;
+        }
+        
+        const text = this._formatUnitsText(i);
+        const textSize = this._ctx.measureText(text);
 
-      const text = this._formatUnitsText(i);
-      const textSize = this._ctx.measureText(text);
-
-      const textX = sharpPos - textSize.width / 2;
-      // skip text render if there is no space for it.
-      if (isNaN(lastTextStart) || lastTextStart <= textX) {
-        lastTextStart = textX + textSize.width;
-        this._ctx.fillText(text, textX, 10);
+        const textX = sharpPos - textSize.width / 2;
+        // skip text render if there is no space for it.
+        if (isNaN(lastTextStart) || lastTextStart <= textX) {
+          lastTextStart = textX + textSize.width;
+          this._ctx.fillText(text, textX, 10);
+        }
       }
 
       this._ctx.restore();
-      if (!TimelineUtils.isNumber(smallStep) || smallStep <= 0) {
-        continue;
-      }
-      // Draw small steps
-      for (let x = i + smallStep; x < i + step; x += smallStep) {
-        // local
-        const nextSharpPos = this._getSharp(this._toScreenPx(x));
-        this._ctx.beginPath();
-        this._ctx.lineWidth = this._pixelRatio;
-        if (this._options.tickColor) {
-          this._ctx.strokeStyle = this._options.tickColor;
-        }
-        TimelineUtils.drawLine(this._ctx, nextSharpPos, smallTickHeight, nextSharpPos, headerHeight);
-        this._ctx.stroke();
-      }
     }
 
     this._ctx.restore();
