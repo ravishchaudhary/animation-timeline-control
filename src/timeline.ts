@@ -1597,7 +1597,7 @@ export class Timeline extends TimelineEventsEmitter {
     if (!TimelineUtils.isNumber(step) || step <= 0 || Math.abs(toVal - fromVal) === 0) {
       return;
     }
-    let lastTextStart = 0;
+    let lastTextStart = NaN;
     this._ctx.save();
     const headerHeight = TimelineStyleUtils.headerHeight(this._options);
     const tickHeight = headerHeight / 2;
@@ -1632,7 +1632,7 @@ export class Timeline extends TimelineEventsEmitter {
         const text = this._formatUnitsText(i);
         const textSize = this._ctx.measureText(text);
 
-        const textX = sharpPos - textSize.width / 2;
+        const textX = Math.max(2, sharpPos - textSize.width / 2);
         // skip text render if there is no space for it.
         if (isNaN(lastTextStart) || lastTextStart <= textX) {
           lastTextStart = textX + textSize.width;
