@@ -1536,17 +1536,18 @@ export class Timeline extends TimelineEventsEmitter {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     
+    // Pad seconds to always show 2 digits
+    const paddedSeconds = seconds.toString().padStart(2, '0');
+    
     let str = '';
     
     if (hours > 0) {
-      // 1 hour or more: 1h30m0s format
-      str = hours + 'h' + minutes + 'm' + seconds + 's';
-    } else if (minutes > 0) {
-      // 1 minute or more: 1m30s format
-      str = minutes + 'm' + seconds + 's';
+      // 1 hour or more: 1:30:00 format
+      const paddedMinutes = minutes.toString().padStart(2, '0');
+      str = hours + ':' + paddedMinutes + ':' + paddedSeconds;
     } else {
-      // Under 1 minute: show seconds only
-      str = seconds + 's';
+      // Under 1 hour: 1:20 format (minutes:seconds)
+      str = minutes + ':' + paddedSeconds;
     }
     
     return sign + str;
