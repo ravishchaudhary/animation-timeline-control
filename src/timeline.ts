@@ -2605,7 +2605,7 @@ export class Timeline extends TimelineEventsEmitter {
       return false;
     }
     let changed = false;
-    // High DPI fix from Stack Overflow
+    // High DPI fix from Stack Overflow (https://stackoverflow.com/a/77164151)
     const dpr = window.devicePixelRatio || 1;
     const cssWidth = this._scrollContainer.clientWidth;
     const cssHeight = this._scrollContainer.clientHeight;
